@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Snake Pixel Cute 🍓</title>
+</head>
+<body>
+
+<script>
+/* ===== CHỐNG SCROLL MOBILE ===== */
+document.body.style.touchAction = "none";
+
+/* ===== GIAO DIỆN ===== */
+document.body.style.background = "#222";
+document.body.style.color = "white";
+document.body.style.textAlign = "center";
+document.body.style.fontFamily = "Arial";
+
+document.body.innerHTML += "<h1>🐍 Snake Pixel Cute 🍓</h1>";
+document.body.innerHTML += "<h2 id='score'>Điểm: 0</h2>";
+document.body.innerHTML += "<h3 id='highScore'>🏆 High Score: 0</h3>";
+
+const canvas = document.createElement("canvas");
+canvas.width = 400;
+canvas.height = 400;
+canvas.style.background = "black";
+canvas.style.border = "3px solid lime";
+document.body.appendChild(canvas);
+
+const ctx = canvas.getContext("2d");
+
+/* ===== HIGH SCORE ===== */
+let highScore = localStorage.getItem("snakeHighScore") || 0;
+document.getElementById("highScore").innerText = "🏆 High Score: " + highScore;
+
+/* ===== BIẾN GAME ===== */
+const box = 20;
+const pixel = 4;
+let score = 0;
+
+let snake = [{ x: 200, y: 200 }];
+let direction = "";
+
+let food = {
+    x: Math.floor(Math.random() * 20) * box,
+    y: Math.floor(Math.random() * 20) * box
+};
+
+/* ===== ĐIỀU KHIỂN BÀN PHÍM ===== */
+document.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+    if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+    if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+    if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+});
+
+/* ===== NÚT ẢO MOBILE ===== */
+const control = document.createElement("div");
+control.style.position = "fixed";
+control.style.bottom = "20px";
+control.style.left = "50%";
+control.style.transform = "translateX(-50%)";
+control.style.display = "grid";
+control.style.gridTemplateColumns = "60px 60px 60px";
+control.style.gridTemplateRows = "60px 60px 60px";
+control.style.gap = "6px";
+document.body.appendChild(control);
+
+function createBtn(text, col, row) {
+    const btn = document.createElement("button");
+    btn.innerText = text;
+    btn.style.gridColumn = col;
+    btn.style.gridRow = row;
+    btn.style.width = "60px";
+    btn.style.height = "60px";
+    btn.style.fontSize = "24px";
+    btn.style.borderRadius = "14px";
+    btn.style.border = "none";
+    btn.style.background = "#444";
+    btn.style.color = "white";
+    btn.style.opacity = "0.9";
+    btn.style.touchAction = "none";
+    control.appendChild(btn);
+    return btn;
+}
+
+const btnUp = createBtn("▲", 2, 1);
+const btnLeft = createBtn("◀", 1, 2);
+const btnRight = createBtn("▶", 3, 2);
+const btnDown = createBtn("▼", 2, 3);
+
+function setDirection(dir) {
+    if (dir === "LEFT" && direction !== "RIGHT") direction = "LEFT";
+    if (dir === "RIGHT" && direction !== "LEFT") direction = "RIGHT";
+    if (dir === "UP" && direction !== "DOWN") direction = "UP";
+    if (dir === "DOWN" && direction !== "UP") direction = "DOWN";
+}
+
+btnUp.addEventListener("touchstart", e => { e.preventDefault(); setDirection("UP"); });
+btnDown.addEventListener("touchstart", e => { e.preventDefault(); setDirection("DOWN"); });
+btnLeft.addEventListener("touchstart", e => { e.preventDefault(); setDirection("LEFT"); });
+btnRight.addEventListener("touchstart", e => { e.preventDefault(); setDirection("RIGHT"); });
+
+/* ===== ĐẦU RẮN PIXEL ===== */
+function drawSnakeHead(x, y) {
+    const art = [
+        "00111100",
+        "01111110",
+        "11311131",
+        "11111111",
+        "11111111",
+        "01111110",
+        "00111100",
+        "00000000"
+    ];
+    const scale = box / 8;
+
+    for (let r = 0; r < art.length; r++) {
+        for (let c = 0; c < art[r].length; c++) {
+            const p = art[r][c];
+            if (p === "0") continue;
+            if (p === "1") ctx.fillStyle = "#00ff66";
+            if (p === "3") ctx.fillStyle = "#ff99cc";
+            ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+        }
+    }
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(x + 5, y + 6, 3, 3);
+    ctx.fillRect(x + 12, y + 6, 3, 3);
+}
+
+/* ===== THÂN RẮN ===== */
+function drawSnakeBody(x, y) {
+    ctx.fillStyle = "#66ff99";
+    for (let i = 0; i < box; i += pixel) {
+        for (let j = 0; j < box; j += pixel) {
+            ctx.fillRect(x + i, y + j, pixel - 1, pixel - 1);
+        }
+    }
+}
+
+/* ===== DÂU TÂY PIXEL ===== */
+function drawStrawberry(x, y) {
+    const art = [
+        "00333000",
+        "00222220",
+        "02222222",
+        "02112112",
+        "02112112",
+        "02222222",
+        "00222220",
+        "00022000"
+    ];
+    const scale = box / 8;
+
+    for (let r = 0; r < art.length; r++) {
+        for (let c = 0; c < art[r].length; c++) {
+            const p = art[r][c];
+            if (p === "0") continue;
+            if (p === "1") ctx.fillStyle = "#b00020";
+            if (p === "2") ctx.fillStyle = "#ff2d2d";
+            if (p === "3") ctx.fillStyle = "#2ecc71";
+            ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+        }
+    }
+}
+
+/* ===== VA CHẠM ===== */
+function collision(head, body) {
+    return body.some(p => p.x === head.x && p.y === head.y);
+}
+
+/* ===== GAME LOOP ===== */
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < snake.length; i++) {
+        if (i === 0) drawSnakeHead(snake[i].x, snake[i].y);
+        else drawSnakeBody(snake[i].x, snake[i].y);
+    }
+
+    drawStrawberry(food.x, food.y);
+
+    let headX = snake[0].x;
+    let headY = snake[0].y;
+
+    if (direction === "LEFT") headX -= box;
+    if (direction === "UP") headY -= box;
+    if (direction === "RIGHT") headX += box;
+    if (direction === "DOWN") headY += box;
+
+    if (headX === food.x && headY === food.y) {
+        score++;
+        document.getElementById("score").innerText = "Điểm: " + score;
+
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("snakeHighScore", highScore);
+            document.getElementById("highScore").innerText =
+                "🏆 High Score: " + highScore;
+        }
+
+        food = {
+            x: Math.floor(Math.random() * 20) * box,
+            y: Math.floor(Math.random() * 20) * box
+        };
+    } else {
+        snake.pop();
+    }
+
+    const newHead = { x: headX, y: headY };
+
+    if (
+        headX < 0 || headY < 0 ||
+        headX >= canvas.width || headY >= canvas.height ||
+        collision(newHead, snake)
+    ) {
+        alert("💀 Game Over!\nĐiểm: " + score + "\n🏆 High Score: " + highScore);
+        location.reload();
+    }
+
+    snake.unshift(newHead);
+}
+
+/* ===== CHẠY GAME ===== */
+setInterval(gameLoop, 120);
+</script>
+
+</body>
+</html>
